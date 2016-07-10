@@ -39,7 +39,7 @@ case class Zadd[A](score: Double, member: A) extends ZSetCommand[A, Long] {
     client.zadd(zset.path.redisKey.getBytes, score, zset.memberType.encode(member))
 }
 
-case class Zpop[A](member: A) extends ZSetCommand[A, Option[A]] {
+case class Zpop[A]() extends ZSetCommand[A, Option[A]] {
   def execute(zset: ZSet[A])(implicit client: Jedis): Option[A] =
     Option(client.eval(
       """
