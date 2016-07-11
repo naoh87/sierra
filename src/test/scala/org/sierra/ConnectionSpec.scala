@@ -3,7 +3,7 @@ package org.sierra
 import org.scalatest._
 import org.sierra.command.Get
 import org.sierra.command.SetBinary
-import org.sierra.command.Strings
+import org.sierra.command.Binary
 import redis.clients.jedis.Jedis
 
 class ConnectionSpec extends FlatSpec with Matchers {
@@ -12,7 +12,7 @@ class ConnectionSpec extends FlatSpec with Matchers {
     implicit val jedis = new Jedis("localhost")
     jedis.flushAll()
 
-    val StringData = Path("root").on("ok_spec") :: LongKey("a") :: Strings(StringType)
+    val StringData = Path("root").on("ok_spec") :: LongKey("a") :: Binary(StringType)
     import api._
 
     StringData / 4 <<: Get() should be(None)
@@ -32,7 +32,7 @@ class ConnectionSpec extends FlatSpec with Matchers {
     case class Sample(a: Int, b: Int)
     val sampleEncoder = (int16 :: int16).as[Sample]
 
-    val StringData = Path("root").on("ok_spec") :: LongKey("a") :: LongKey("b") :: Strings(ValueType(sampleEncoder))
+    val StringData = Path("root").on("ok_spec") :: LongKey("a") :: LongKey("b") :: Binary(ValueType(sampleEncoder))
     val path = StringData / 32 / 13
 
     path <<: Get() should be(None)
