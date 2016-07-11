@@ -31,7 +31,7 @@ case class Get[A]() extends StringsCommand[A, Option[A]] {
     source bulkReply (client get source.redisKey)
 }
 
-case class Set[A](value: A) extends StringsCommand[A, Boolean] {
+case class SetBinary[A](value: A) extends StringsCommand[A, Boolean] {
   override def execute(source: Strings[A])(implicit client: Jedis): Boolean =
     Option(client.set(source.redisKey, source.encode(value))).contains("OK")
 }
