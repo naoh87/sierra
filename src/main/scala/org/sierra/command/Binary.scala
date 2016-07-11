@@ -37,6 +37,26 @@ case class SetBinary[A](value: A) extends BinaryCommand[A, Boolean] {
     Option(client.set(source.redisKey, source.encode(value))).contains("OK")
 }
 
+case class SetNX[A](value: A) extends BinaryCommand[A, Boolean] {
+  override def execute(source: Binary[A])(implicit client: Jedis): Boolean =
+    Option(client.setnx(source.redisKey, source.encode(value))).contains(1)
+}
+
+case class SetEX[A](value: A, seconds: Int) extends BinaryCommand[A, Boolean] {
+  override def execute(source: Binary[A])(implicit client: Jedis): Boolean =
+    Option(client.setex(source.redisKey, seconds, source.encode(value))).contains(1)
+}
+
+case class SetEXNX[A](value: A, seconds: Int) extends BinaryCommand[A, Boolean] {
+  override def execute(source: Binary[A])(implicit client: Jedis): Boolean =
+    Option(client.set(source.redisKey, "NX".getBytes(), "EX".getBytes(), source.encode(value), seconds)).contains("OK")
+}
+
+case class SetEXXX[A](value: A, seconds: Int) extends BinaryCommand[A, Boolean] {
+  override def execute(source: Binary[A])(implicit client: Jedis): Boolean =
+    Option(client.set(source.redisKey, "XX".getBytes(), "EX".getBytes(), source.encode(value), seconds)).contains("OK")
+}
+
 case class GetSet[A](value: A) extends BinaryCommand[A, Option[A]] {
   override def execute(source: Binary[A])(implicit client: Jedis): Option[A] =
     source bulkReply client.getSet(source.redisKey, source.encode(value))
