@@ -13,6 +13,10 @@ case class LongKey(prefix: String = "") extends QKey[Long] {
   override def toKey(q: Long): String = prefix + q.toString
 }
 
+case class PKey[A](f: A => String) extends QKey[A] {
+  def toKey(q: A): String = f(q)
+}
+
 trait QKey[T] {
   def toKey(q: T): String
 }
