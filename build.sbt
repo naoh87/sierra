@@ -4,6 +4,8 @@ version := "0.1.0"
 
 scalaVersion := "2.11.8"
 
+organization := "org.naoh"
+
 resolvers += "Sonatype Public" at "https://oss.sonatype.org/content/groups/public/"
 
 libraryDependencies ++= Seq(
@@ -14,3 +16,5 @@ libraryDependencies ++= Seq(
   "org.scodec" %% "scodec-bits" % "1.1.0",
   "org.scalatest" %% "scalatest"  % "2.2.5" % "test"
 )
+
+publishTo := Some(Resolver.file("sierra",file("./"))(Patterns(true, Resolver.mavenStyleBasePattern)))
