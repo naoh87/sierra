@@ -1,5 +1,6 @@
 package org.sierra.command
 
+import org.sierra.StringInteger
 import org.sierra.ValueType
 import org.sierra.Path
 import org.sierra.QPathBuilder
@@ -39,4 +40,19 @@ case class SetBinary[A](value: A) extends BinaryCommand[A, Boolean] {
 case class GetSet[A](value: A) extends BinaryCommand[A, Option[A]] {
   override def execute(source: Binary[A])(implicit client: Jedis): Option[A] =
     source bulkReply client.getSet(source.redisKey, source.encode(value))
+}
+
+
+class Integers(path: Path) extends Binary[Long](path, StringInteger)
+
+trait IntegerCommand[B] extends BinaryCommand[String, B]
+
+case class Incr() extends IntegerCommand[Long] {
+  override def execute(source: Binary[String])(implicit client: Jedis): Long =
+    client.incr(source.redisKey)
+}
+
+case class IncrBy(increment: Long) extends IntegerCommand[Long] {
+  override def execute(source: Binary[String])(implicit client: Jedis): Long =
+    client.incrBy(source.redisKey, increment)
 }

@@ -16,10 +16,16 @@ trait ValueDecoder[+A] {
 }
 
 
-object StringType extends ValueType[String] {
+object StringValue extends ValueType[String] {
   override def decode(coded: Array[Byte]): String = new String(coded)
 
   override def encode(raw: String): Array[Byte] = raw.getBytes()
+}
+
+object StringInteger extends ValueType[Long] {
+  override def decode(coded: Array[Byte]): Long = new String(coded).toLong
+
+  override def encode(raw: Long): Array[Byte] = raw.toString.getBytes()
 }
 
 class ScodecEncoder[T](codec: Codec[T]) extends ValueType[T] {

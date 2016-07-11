@@ -12,7 +12,7 @@ class ConnectionSpec extends FlatSpec with Matchers {
     implicit val jedis = new Jedis("localhost")
     jedis.flushAll()
 
-    val StringData = Path("root").on("ok_spec") :: LongKey("a") :: Binary(StringType)
+    val StringData = Path("root").on("ok_spec") :: LongKey("a") :: Binary(StringValue)
     import api._
 
     StringData / 4 <<: Get() should be(None)
