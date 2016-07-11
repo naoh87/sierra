@@ -10,7 +10,7 @@ case class Path(redisKey: String) {
 
 
 case class LongKey(prefix: String = "") extends QKey[Long] {
-  override def toKey(q: Long): String = prefix + ":" + q.toString
+  override def toKey(q: Long): String = prefix + q.toString
 }
 
 trait QKey[T] {
