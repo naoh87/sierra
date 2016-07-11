@@ -1,9 +1,6 @@
 package org.sierra.command
 
-import org.sierra.StringInteger
-import org.sierra.ValueType
-import org.sierra.Path
-import org.sierra.QPathBuilder
+import org.sierra._
 import redis.clients.jedis.Jedis
 import shapeless.HNil
 
@@ -18,7 +15,7 @@ class Binary[A](path: Path, vType: ValueType[A]) {
 
 object Binary {
   def apply[A](vType: ValueType[A]): QPathBuilder[HNil, Binary[A]] =
-    QPathBuilder(HNil, Binary(_, vType))
+    QPathBuilder(HNil, apply(_, vType))
 
   def apply[A](pos: Path, vType: ValueType[A]) =
     new Binary(pos, vType)
@@ -65,14 +62,52 @@ case class GetSet[A](value: A) extends BinaryCommand[A, Option[A]] {
 
 class Integers(path: Path) extends Binary[Long](path, StringInteger)
 
-trait IntegerCommand[B] extends BinaryCommand[String, B]
+object Integers {
+  def apply(): QPathBuilder[HNil, Integers] =
+    QPathBuilder(HNil, apply)
+
+  def apply(pos: Path): Integers = new Integers(pos)
+}
+
+trait IntegerCommand[B] extends RedisCommand1[Integers, B]
 
 case class Incr() extends IntegerCommand[Long] {
-  override def execute(source: Binary[String])(implicit client: Jedis): Long =
+  override def execute(source: Integers)(implicit client: Jedis): Long =
     client.incr(source.redisKey)
 }
 
 case class IncrBy(increment: Long) extends IntegerCommand[Long] {
-  override def execute(source: Binary[String])(implicit client: Jedis): Long =
+  override def execute(source: Integers)(implicit client: Jedis): Long =
     client.incrBy(source.redisKey, increment)
+}
+
+case class Decr() extends IntegerCommand[Long] {
+  override def execute(source: Integers)(implicit client: Jedis): Long =
+    client.decr(source.redisKey)
+}
+
+case class DecrBy(decrement: Long) extends IntegerCommand[Long] {
+  override def execute(source: Integers)(implicit client: Jedis): Long =
+    client.decrBy(source.redisKey, decrement)
+}
+
+class Strings(path: Path) extends Binary[String](path, StringValue)
+
+object Strings {
+  def apply(): QPathBuilder[HNil, Strings] =
+    QPathBuilder(HNil, apply)
+
+  def apply(pos: Path): Strings = new Strings(pos)
+}
+
+trait StringsCommand[B] extends BinaryCommand[String, B]
+
+case class GETRANGE(start: Int, end: Int) extends StringsCommand[String] {
+  def execute(source: Binary[String])(implicit client: Jedis): String =
+    new String(client.getrange(source.redisKey, start, end))
+}
+
+case class SETRANGE(offset: Int, value: String) extends StringsCommand[Long] {
+  override def execute(source: Binary[String])(implicit client: Jedis): Long =
+    client.setrange(source.redisKey, offset, value.getBytes())
 }
