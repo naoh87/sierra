@@ -33,22 +33,21 @@ case class ZCard[A](member: A) extends ZSetCommand[A, Long] {
     client.zcard(zset.path.redisKey.getBytes())
 }
 
-
 case class Zadd[A](score: Double, member: A) extends ZSetCommand[A, Long] {
   def execute(zset: ZSet[A])(implicit client: Jedis): Long =
     client.zadd(zset.path.redisKey.getBytes, score, zset.memberType.encode(member))
 }
 
-case class Zpop[A]() extends ZSetCommand[A, Option[A]] {
-  def execute(zset: ZSet[A])(implicit client: Jedis): Option[A] =
+case class ZPop[A]() extends ZSetCommand[A, Option[A]] {
+  def execute(zset: ZSet[A])(implicit client: Jedis): Option[A] = {
     Option(client.eval(
       """
          |local result = redis.call('zrange', KEYS[1], -1, -1)
          |if result then redis.call('zremrangebyrank', KEYS[1], -1, -1) end
          |return result
-      """.stripMargin, 1, zset.path.redisKey))
-      .map(_.asInstanceOf[util.Set[Array[Byte]]])
+      """.stripMargin.getBytes(), 1, zset.path.redisKey.getBytes()).asInstanceOf[util.List[Array[Byte]]])
       .flatMap(_.asScala.map(zset.memberType.decode).headOption)
+    }
 }
 
 trait ZSetCommand[A, B] extends RedisCommand1[ZSet[A], B]

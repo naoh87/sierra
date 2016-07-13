@@ -102,12 +102,12 @@ object Strings {
 
 trait StringsCommand[B] extends BinaryCommand[String, B]
 
-case class GETRANGE(start: Int, end: Int) extends StringsCommand[String] {
+case class GetRange(start: Int, end: Int) extends StringsCommand[String] {
   def execute(source: Binary[String])(implicit client: Jedis): String =
     new String(client.getrange(source.redisKey, start, end))
 }
 
-case class SETRANGE(offset: Int, value: String) extends StringsCommand[Long] {
+case class SetRange(offset: Int, value: String) extends StringsCommand[Long] {
   override def execute(source: Binary[String])(implicit client: Jedis): Long =
     client.setrange(source.redisKey, offset, value.getBytes())
 }
