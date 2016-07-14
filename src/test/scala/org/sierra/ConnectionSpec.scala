@@ -6,55 +6,52 @@ import redis.clients.jedis.Jedis
 
 class ConnectionSpec extends FlatSpec with Matchers {
 
-  it should "OK" in {
-    implicit val jedis = new Jedis("localhost")
-    jedis.flushAll()
+  it should "OK" in new RedisSetup {
+    redis { implicit jedis =>
+      val StringData = Path("root").on("ok_spec") :: LongKey("a") :: Binary(StringValue)
+      import api._
 
-    val StringData = Path("root").on("ok_spec") :: LongKey("a") :: Binary(StringValue)
-    import api._
-
-    StringData / 4 <<: Get() should be(None)
-    StringData / 4 <<: SetBinary("aa") should be(true)
-    StringData / 4 <<: Get() should be(Some("aa"))
-    jedis.close()
+      StringData / 4 <<: Get() should be(None)
+      StringData / 4 <<: SetBinary("aa") should be(true)
+      StringData / 4 <<: Get() should be(Some("aa"))
+    }
   }
 
-  "scodec" should "OK" in {
-    import api._
-    implicit val jedis = new Jedis("localhost")
-    jedis.flushAll()
+  "scodec" should "OK" in new RedisSetup {
+    redis { implicit jedis =>
+      import api._
 
-    import scodec._
-    import codecs._
+      import scodec._
+      import codecs._
 
-    case class Sample(a: Int, b: Int)
-    val sampleEncoder = (int16 :: int16).as[Sample]
+      case class Sample(a: Int, b: Int)
+      val sampleEncoder = (int16 :: int16).as[Sample]
 
-    val StringData = Path("root").on("ok_spec") :: LongKey("a") :: LongKey("b") :: Binary(ValueType(sampleEncoder))
-    val path = StringData / 32 / 13
+      val StringData = Path("root").on("ok_spec") :: LongKey("a") :: LongKey("b") :: Binary(ValueType(sampleEncoder))
+      val path = StringData / 32 / 13
 
-    path <<: Get() should be(None)
-    path <<: SetBinary(Sample(12,1024)) should be(true)
-    path <<: Get() should be(Some(Sample(12,1024)))
-    jedis.close()
+      path <<: Get() should be(None)
+      path <<: SetBinary(Sample(12, 1024)) should be(true)
+      path <<: Get() should be(Some(Sample(12, 1024)))
+    }
   }
 
-  "integers" should "OK" in {
-    import api._
-    implicit val jedis = new Jedis("localhost")
-    jedis.flushAll()
+  "integers" should "OK" in new RedisSetup {
+    redis { implicit jedis =>
+      import api._
 
-    case class HogeValue(a: Int, b: String)
+      case class HogeValue(a: Int, b: String)
 
-    val hogeKey = PKey[HogeValue](m => s"{${m.a}}-${m.b}")
+      val hogeKey = PKey[HogeValue](m => s"{${m.a}}-${m.b}")
 
-    val StringData = Path("root").on("ok_spec") :: LongKey("a") :: hogeKey :: Integers()
-    val path = StringData / 32 / HogeValue(3, "hoge")
+      val StringData = Path("root").on("ok_spec") :: LongKey("a") :: hogeKey :: Integers()
+      val path = StringData / 32 / HogeValue(3, "hoge")
 
-    path <<: Get() should be(None)
-    path <<: SetBinary(1234L) should be(true)
-    path <<: Incr()
-    path <<: Get() should be(Some(1235L))
-    jedis.close()
+      path <<: Get() should be(None)
+      path <<: SetBinary(1234L) should be(true)
+      path <<: Incr()
+      path <<: Get() should be(Some(1235L))
+
+    }
   }
 }

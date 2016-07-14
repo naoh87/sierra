@@ -14,7 +14,7 @@ class ZSetSpec extends FlatSpec with Matchers {
     import api._
 
     val sampleEncoder = (int16 :: string(Charset.defaultCharset())).as[HogeValue]
-    val StringData = Path("root").on("ok_spec") :: LongKey("a") :: ZSet(ValueType(sampleEncoder))
+    val StringData = Path("root").on("ok_spec") :: LongKey("zset") :: ZSet(ValueType(sampleEncoder))
     val path = StringData / 32
 
     case class HogeValue(a: Int, b: String)
@@ -29,9 +29,9 @@ class ZSetSpec extends FlatSpec with Matchers {
       path <<: Zadd(4, HogeValue(1, "bb")) should be(1)
       path <<: Zadd(5, HogeValue(1, "kk")) should be(1)
       path <<: ZRange(2, 2) should be(Seq(HogeValue(1, "kk")))
-      path <<: ZPop() should be(Some(HogeValue(1, "kk")))
-
-      ZPop() on path
+      path <<: ZCount() should be(3)
+      path <<: ZPop() should be(Some(HogeValue(1, "aa")))
+      path <<: ZCount() should be(2)
 
     }
   }

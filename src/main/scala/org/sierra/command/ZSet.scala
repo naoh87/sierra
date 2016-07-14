@@ -22,8 +22,8 @@ object ZSet {
 }
 
 
-case class ZRange[A](start: Int, end: Int) extends ZSetCommand[A, Seq[A]] {
-  def execute(zset: ZSet[A])(implicit client: Jedis): Seq[A] =
+case class ZRange(start: Int, end: Int) extends ZSetCommandM[Seq] {
+  def execute[T](zset: ZSet[T])(implicit client: Jedis): Seq[T] =
     Option(client.zrange(zset.path.redisKey.getBytes, start, end)).toSeq
       .flatMap(_.asScala.toSeq.map(zset.memberType.decode))
 }
@@ -38,16 +38,32 @@ case class Zadd[A](score: Double, member: A) extends ZSetCommand[A, Long] {
     client.zadd(zset.path.redisKey.getBytes, score, zset.memberType.encode(member))
 }
 
-case class ZPop[A]() extends ZSetCommand[A, Option[A]] {
-  def execute(zset: ZSet[A])(implicit client: Jedis): Option[A] = {
+
+case class ZPop() extends ZSetCommandM[Option] {
+  def execute[T](source: ZSet[T])(implicit client: Jedis): Option[T] =
     Option(client.eval(
       """
-         |local result = redis.call('zrange', KEYS[1], -1, -1)
-         |if result then redis.call('zremrangebyrank', KEYS[1], -1, -1) end
-         |return result
-      """.stripMargin.getBytes(), 1, zset.path.redisKey.getBytes()).asInstanceOf[util.List[Array[Byte]]])
-      .flatMap(_.asScala.map(zset.memberType.decode).headOption)
-    }
+        |local r = redis.call('zrange', KEYS[1], 0, 0)
+        |if r then redis.call('zremrangebyrank', KEYS[1], 0, 0) end
+        |return r
+      """.stripMargin.getBytes(), 1, source.path.redisKey.getBytes())
+      .asInstanceOf[util.List[Array[Byte]]])
+      .flatMap(_.asScala.map(source.memberType.decode).headOption)
 }
 
+case class ZCount(
+  min: Double = Double.NegativeInfinity,
+  max: Double = Double.PositiveInfinity
+) extends ZSetCommandA[Long] {
+  def execute[A](source: ZSet[A])(implicit client: Jedis): Long =
+    client.zcount(source.path.redisKey, min, max)
+}
+
+
+import scala.language.higherKinds
+
 trait ZSetCommand[A, B] extends RedisCommand1[ZSet[A], B]
+
+trait ZSetCommandM[T[_]] extends RedisCommand1m[ZSet, T]
+
+trait ZSetCommandA[B] extends RedisCommand1a[ZSet, B]
