@@ -9,6 +9,7 @@ import org.sierra.QPathBuilder
 import redis.clients.jedis.Jedis
 import shapeless.HNil
 
+import scala.language.higherKinds
 import scala.collection.JavaConverters._
 
 
@@ -33,9 +34,10 @@ case class ZCard[A](member: A) extends ZSetCommand[A, Long] {
     client.zcard(zset.path.redisKey.getBytes())
 }
 
-case class Zadd[A](score: Double, member: A) extends ZSetCommand[A, Long] {
-  def execute(zset: ZSet[A])(implicit client: Jedis): Long =
-    client.zadd(zset.path.redisKey.getBytes, score, zset.memberType.encode(member))
+
+case class Zadd[A](score: Double, member: A) extends RedisCommand1d1[ZSet, A, Long] {
+  def execute[T >: A](source: ZSet[T])(implicit client: Jedis): Long =
+    client.zadd(source.path.redisKey.getBytes, score, source.memberType.encode(member))
 }
 
 
@@ -59,8 +61,6 @@ case class ZCount(
     client.zcount(source.path.redisKey, min, max)
 }
 
-
-import scala.language.higherKinds
 
 trait ZSetCommand[A, B] extends RedisCommand1[ZSet[A], B]
 

@@ -1,10 +1,14 @@
 package org.sierra
 
+import org.sierra.command.RedisCommand1d1
+import redis.clients.jedis.Jedis
 import shapeless.HList
+import shapeless.HNil
 
 
 case class Path(redisKey: String) {
   def /(key: String): Path = Path(redisKey + ":" + key)
+
   def on(keys: String*): Path = Path((redisKey +: keys).mkString(":"))
 }
 
@@ -34,6 +38,8 @@ case class QPathBuilder[+A <: HList, +M](hList: A, invoker: (Path) => M) {
 }
 
 package object api {
+  import scala.language.higherKinds
+
   implicit class QPathResolver[T, +H <: HList, K](qp: QPath[shapeless.::[QKey[T], H], K]) {
     def /(q: T) =
       QPath(
@@ -41,4 +47,10 @@ package object api {
         qp.qKeys.tail,
         qp.invoker)
   }
+
+  implicit class RedisCommandIntelijHelper[M[_], C, B](command: RedisCommand1d1[M, C, B]) {
+    def <<:[K >: C](qp: QPath[HNil, M[K]])(implicit client: Jedis): B = on(qp)
+    def on[K >: C](qp: QPath[HNil, M[K]])(implicit client: Jedis): B = command.execute(qp.build)
+  }
+
 }

@@ -29,8 +29,9 @@ trait RedisCommand1a[A[_], B] {
   def execute[T](source: A[T])(implicit client: Jedis): B
 }
 
-trait RedisCommand2[A, B] {
-  def on(qp: QPath[HNil, A], qp2: QPath[HNil, A])(implicit client: Jedis): B = execute(qp.build, qp2.build)
+trait RedisCommand1d1[M[_], E, R] {
+  // define this method at implicit class for inttelij scala paraser
+  // def <<:[K >: E](qp: QPath[HNil, M[K]])(implicit client: Jedis): R = execute(qp.build)
 
-  def execute(source: A, source2: A)(implicit client: Jedis): B
+  def execute[T >: E](source: M[T])(implicit client: Jedis): R
 }

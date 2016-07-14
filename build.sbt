@@ -18,3 +18,5 @@ libraryDependencies ++= Seq(
 )
 
 publishTo := Some(Resolver.file("sierra",file("./"))(Patterns(true, Resolver.mavenStyleBasePattern)))
+
+scalacOptions in ThisBuild ++= Seq("-feature")

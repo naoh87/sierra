@@ -9,9 +9,8 @@ import scodec.codecs._
 
 class ZSetSpec extends FlatSpec with Matchers {
 
+  import api._
   trait Setup extends RedisSetup {
-
-    import api._
 
     val sampleEncoder = (int16 :: string(Charset.defaultCharset())).as[HogeValue]
     val StringData = Path("root").on("ok_spec") :: LongKey("zset") :: ZSet(ValueType(sampleEncoder))
