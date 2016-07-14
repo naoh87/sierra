@@ -1,6 +1,6 @@
 package org.sierra
 
-import org.sierra.command.RedisCommand1d1
+import org.sierra.command.RedisCommand1K
 import redis.clients.jedis.Jedis
 import shapeless.HList
 import shapeless.HNil
@@ -48,7 +48,7 @@ package object api {
         qp.invoker)
   }
 
-  implicit class RedisCommandIntelijHelper[M[_], C, B](command: RedisCommand1d1[M, C, B]) {
+  implicit class RedisCommandIntelijHelper[M[_], C, B](command: RedisCommand1K[M, C, B]) {
     def <<:[K >: C](qp: QPath[HNil, M[K]])(implicit client: Jedis): B = on(qp)
     def on[K >: C](qp: QPath[HNil, M[K]])(implicit client: Jedis): B = command.execute(qp.build)
   }

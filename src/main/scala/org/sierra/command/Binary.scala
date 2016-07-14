@@ -3,6 +3,7 @@ package org.sierra.command
 import org.sierra._
 import redis.clients.jedis.Jedis
 import shapeless.HNil
+import scala.language.higherKinds
 
 class Binary[A](path: Path, vType: ValueType[A]) {
   def redisKey: Array[Byte] = path.redisKey.getBytes()
@@ -21,41 +22,50 @@ object Binary {
     new Binary(pos, vType)
 }
 
-trait BinaryCommand[A, B] extends RedisCommand1[Binary[A], B]
+trait BinaryCommandM[R[_]] extends RedisCommand1M[Binary, R]
+
+trait BinaryCommandK[A, R] extends RedisCommand1K[Binary, A, R]
+
+trait BinaryCommandKM[A, R[_]] extends RedisCommand1KM[Binary, A, R]
 
 
-case class Get[A]() extends BinaryCommand[A, Option[A]] {
-  override def execute(source: Binary[A])(implicit client: Jedis): Option[A] =
+case class Get() extends BinaryCommandM[Option] {
+  def execute[T](source: Binary[T])(implicit client: Jedis): Option[T] =
     source bulkReply (client get source.redisKey)
 }
 
-case class SetBinary[A](value: A) extends BinaryCommand[A, Boolean] {
-  override def execute(source: Binary[A])(implicit client: Jedis): Boolean =
-    Option(client.set(source.redisKey, source.encode(value))).contains("OK")
+
+case class SetBinaryParametric[A] private[command](value: A, nxxx: String, ex: Option[Int]) extends RedisCommand1K[Binary, A, Boolean] {
+  override def execute[K >: A](source: Binary[K])(implicit client: Jedis): Boolean = ex match {
+    case Some(x) =>
+      Option(client.set(source.redisKey, source.encode(value), nxxx.getBytes(), "ex".getBytes(), x)).contains("OK")
+    case None =>
+      Option(client.set(source.redisKey, source.encode(value), nxxx.getBytes())).contains("OK")
+  }
+  def ex(expire: Int): SetBinaryParametric[A] = this.copy(ex = Some(expire))
 }
 
-case class SetNX[A](value: A) extends BinaryCommand[A, Boolean] {
-  override def execute(source: Binary[A])(implicit client: Jedis): Boolean =
+case class Sets[A](value: A) extends RedisCommand1K[Binary, A, Boolean] {
+  override def execute[K >: A](source: Binary[K])(implicit client: Jedis): Boolean =
+    Option(client.set(source.redisKey, source.encode(value))).contains("OK")
+
+  def nx() = new SetBinaryParametric(value, "nx", None)
+
+  def xx() = new SetBinaryParametric(value, "xx", None)
+}
+
+case class SetNX[A](value: A) extends RedisCommand1K[Binary, A, Boolean] {
+  override def execute[K >: A](source: Binary[K])(implicit client: Jedis): Boolean =
     Option(client.setnx(source.redisKey, source.encode(value))).contains(1)
 }
 
-case class SetEX[A](value: A, seconds: Int) extends BinaryCommand[A, Boolean] {
-  override def execute(source: Binary[A])(implicit client: Jedis): Boolean =
-    Option(client.setex(source.redisKey, seconds, source.encode(value))).contains(1)
+case class SetEX[A](value: A, seconds: Int) extends RedisCommand1K[Binary, A, Boolean] {
+  override def execute[K >: A](source: Binary[K])(implicit client: Jedis): Boolean =
+    Option(client.setex(source.redisKey, seconds, source.encode(value))).contains("OK")
 }
 
-case class SetEXNX[A](value: A, seconds: Int) extends BinaryCommand[A, Boolean] {
-  override def execute(source: Binary[A])(implicit client: Jedis): Boolean =
-    Option(client.set(source.redisKey, "NX".getBytes(), "EX".getBytes(), source.encode(value), seconds)).contains("OK")
-}
-
-case class SetEXXX[A](value: A, seconds: Int) extends BinaryCommand[A, Boolean] {
-  override def execute(source: Binary[A])(implicit client: Jedis): Boolean =
-    Option(client.set(source.redisKey, "XX".getBytes(), "EX".getBytes(), source.encode(value), seconds)).contains("OK")
-}
-
-case class GetSet[A](value: A) extends BinaryCommand[A, Option[A]] {
-  override def execute(source: Binary[A])(implicit client: Jedis): Option[A] =
+case class GetSet[A](value: A) extends RedisCommand1KM[Binary, A, Option] {
+  def execute[K >: A](source: Binary[K])(implicit client: Jedis): Option[K] =
     source bulkReply client.getSet(source.redisKey, source.encode(value))
 }
 
@@ -69,7 +79,7 @@ object Integers {
   def apply(pos: Path): Integers = new Integers(pos)
 }
 
-trait IntegerCommand[B] extends RedisCommand1[Integers, B]
+trait IntegerCommand[B] extends RedisCommand1S[Integers, B]
 
 case class Incr() extends IntegerCommand[Long] {
   override def execute(source: Integers)(implicit client: Jedis): Long =
@@ -100,14 +110,14 @@ object Strings {
   def apply(pos: Path): Strings = new Strings(pos)
 }
 
-trait StringsCommand[B] extends BinaryCommand[String, B]
+trait StringsCommand[B] extends RedisCommand1S[Strings, B]
 
 case class GetRange(start: Int, end: Int) extends StringsCommand[String] {
-  def execute(source: Binary[String])(implicit client: Jedis): String =
+  override def execute(source: Strings)(implicit client: Jedis): String =
     new String(client.getrange(source.redisKey, start, end))
 }
 
 case class SetRange(offset: Int, value: String) extends StringsCommand[Long] {
-  override def execute(source: Binary[String])(implicit client: Jedis): Long =
+  override def execute(source: Strings)(implicit client: Jedis): Long =
     client.setrange(source.redisKey, offset, value.getBytes())
 }

@@ -12,8 +12,12 @@ class ConnectionSpec extends FlatSpec with Matchers {
       import api._
 
       StringData / 4 <<: Get() should be(None)
-      StringData / 4 <<: SetBinary("aa") should be(true)
+      StringData / 4 <<: Sets("aa") should be(true)
       StringData / 4 <<: Get() should be(Some("aa"))
+
+      Sets("a").nx().ex(4) on StringData / 4 should be(false)
+
+      StringData / 4 <<: Sets("xx").xx().ex(3)
     }
   }
 
@@ -31,7 +35,7 @@ class ConnectionSpec extends FlatSpec with Matchers {
       val path = StringData / 32 / 13
 
       path <<: Get() should be(None)
-      path <<: SetBinary(Sample(12, 1024)) should be(true)
+      path <<: Sets(Sample(12, 1024)) should be(true)
       path <<: Get() should be(Some(Sample(12, 1024)))
     }
   }
@@ -48,7 +52,7 @@ class ConnectionSpec extends FlatSpec with Matchers {
       val path = StringData / 32 / HogeValue(3, "hoge")
 
       path <<: Get() should be(None)
-      path <<: SetBinary(1234L) should be(true)
+      path <<: Sets(1234L) should be(true)
       path <<: Incr()
       path <<: Get() should be(Some(1235L))
 

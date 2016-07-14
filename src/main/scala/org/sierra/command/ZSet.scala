@@ -1,5 +1,6 @@
 package org.sierra.command
 
+import java.lang
 import java.util
 
 import org.sierra.ValueType
@@ -7,8 +8,13 @@ import org.sierra.Path
 import org.sierra.QPath
 import org.sierra.QPathBuilder
 import redis.clients.jedis.Jedis
+import redis.clients.jedis.Pipeline
+import redis.clients.jedis.Response
 import shapeless.HNil
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.Promise
 import scala.language.higherKinds
 import scala.collection.JavaConverters._
 
@@ -30,12 +36,29 @@ case class ZRange(start: Int, end: Int) extends ZSetCommandM[Seq] {
 }
 
 case class ZCard[A](member: A) extends ZSetCommand[A, Long] {
-  def execute(zset: ZSet[A])(implicit client: Jedis): Long =
+  def execute[T >: A](zset: ZSet[T])(implicit client: Jedis): Long =
     client.zcard(zset.path.redisKey.getBytes())
+
+  def executeP[T >: A](zset: ZSet[T])(implicit pipe: PipeLiner): Future[Long] =
+    pipe.to(_.zcard(zset.path.redisKey.getBytes())).map(_.toLong)(pipe.context)
 }
 
+class PipeLiner(client: Pipeline)(implicit val context: ExecutionContext) {
+  private[this] val await = Promise[Unit]
 
-case class Zadd[A](score: Double, member: A) extends RedisCommand1d1[ZSet, A, Long] {
+  def sync() = {
+    await.completeWith(Future {
+      client.sync()
+    })
+  }
+
+  def to[A](f: (Pipeline) => Response[A]): Future[A] = {
+    val r = f(client)
+    await.future.map(_ => r.get())
+  }
+}
+
+case class ZAdd[A](score: Double, member: A) extends ZSetCommand[A, Long] {
   def execute[T >: A](source: ZSet[T])(implicit client: Jedis): Long =
     client.zadd(source.path.redisKey.getBytes, score, source.memberType.encode(member))
 }
@@ -62,8 +85,8 @@ case class ZCount(
 }
 
 
-trait ZSetCommand[A, B] extends RedisCommand1[ZSet[A], B]
+trait ZSetCommand[A, B] extends RedisCommand1K[ZSet, A, B]
 
-trait ZSetCommandM[T[_]] extends RedisCommand1m[ZSet, T]
+trait ZSetCommandM[T[_]] extends RedisCommand1M[ZSet, T]
 
-trait ZSetCommandA[B] extends RedisCommand1a[ZSet, B]
+trait ZSetCommandA[B] extends RedisCommand1R[ZSet, B]

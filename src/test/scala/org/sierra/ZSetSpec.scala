@@ -24,9 +24,10 @@ class ZSetSpec extends FlatSpec with Matchers {
   "zpop" should "pop last" in new Setup {
     redis { implicit client =>
 
-      path <<: Zadd(3, HogeValue(1, "aa")) should be(1)
-      path <<: Zadd(4, HogeValue(1, "bb")) should be(1)
-      path <<: Zadd(5, HogeValue(1, "kk")) should be(1)
+      path <<: ZPop() should be(None)
+      path <<: ZAdd(3, HogeValue(1, "aa")) should be(1)
+      path <<: ZAdd(4, HogeValue(1, "bb")) should be(1)
+      path <<: ZAdd(5, HogeValue(1, "kk")) should be(1)
       path <<: ZRange(2, 2) should be(Seq(HogeValue(1, "kk")))
       path <<: ZCount() should be(3)
       path <<: ZPop() should be(Some(HogeValue(1, "aa")))

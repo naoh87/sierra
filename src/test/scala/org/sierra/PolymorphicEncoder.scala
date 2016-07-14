@@ -4,7 +4,7 @@ import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import org.sierra.command.Get
 import org.sierra.command.ZSet
-import org.sierra.command.Zadd
+import org.sierra.command.ZAdd
 
 import scala.util.Try
 
@@ -17,11 +17,11 @@ class PolymorphicEncoder extends FlatSpec with Matchers with RedisSetup {
 
       val qpath = Path("root") :: LongKey("zset") :: ZSet(BaseCType)
 
-      val a1 = Zadd(1, ModeA(12, 23))
-      val a2 = Zadd(2, ModeB(12, "23"))
-      val ae = Zadd(3, "a")
+      val a1 = ZAdd(1, ModeA(12, 23))
+      val a2 = ZAdd(2, ModeB(12, "23"))
+      val ae = ZAdd(3, "a")
 
-      qpath / 3 <<: Zadd(1, ModeA(12, 23))
+      qpath / 3 <<: ZAdd(1, ModeA(12, 23))
       qpath / 3 <<: a1
       qpath / 3 <<: a2
 
