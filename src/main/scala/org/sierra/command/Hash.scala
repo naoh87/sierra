@@ -7,7 +7,7 @@ import redis.clients.jedis.Jedis
 import shapeless.HNil
 
 class Hash[A, B](path: Path, fieldType: ValueType[A], valueType: ValueType[B]) {
-  def redisKey: Array[Byte] = path.redisKey.getBytes()
+  def redisKey: Array[Byte] = path.value.getBytes()
 
   def encodeField(data: A): Array[Byte] = fieldType.encode(data)
 

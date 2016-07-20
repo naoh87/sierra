@@ -32,7 +32,6 @@ class ZSetSpec extends FlatSpec with Matchers {
       path <<: ZCount() should be(3)
       path <<: ZPop() should be(Some(HogeValue(1, "aa")))
       path <<: ZCount() should be(2)
-
     }
   }
 

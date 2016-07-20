@@ -6,7 +6,7 @@ import shapeless.HNil
 import scala.language.higherKinds
 
 class Binary[A](path: Path, vType: ValueType[A]) {
-  def redisKey: Array[Byte] = path.redisKey.getBytes()
+  def redisKey: Array[Byte] = path.value.getBytes()
 
   def encode(data: A): Array[Byte] = vType.encode(data)
 

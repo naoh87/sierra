@@ -2,10 +2,9 @@ package org.sierra
 
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
+import org.sierra.command.Binary
 import org.sierra.command.Get
-import org.sierra.command.ZSet
-import org.sierra.command.ZAdd
-
+import org.sierra.command.Sets
 import scala.util.Try
 
 class PolymorphicEncoder extends FlatSpec with Matchers with RedisSetup {
@@ -15,15 +14,16 @@ class PolymorphicEncoder extends FlatSpec with Matchers with RedisSetup {
     redis { implicit client =>
       import api._
 
-      val qpath = Path("root") :: LongKey("zset") :: ZSet(BaseCType)
+      val qpath = Path("poly")  :: "morph" :: LongKey("lv") :: Binary(BaseCType)
 
-      val a1 = ZAdd(1, ModeA(12, 23))
-      val a2 = ZAdd(2, ModeB(12, "23"))
-      val ae = ZAdd(3, "a")
+      val a1 = Sets(ModeA(12, 23))
+      val a2 = Sets(ModeB(12, "ab"))
 
-      qpath / 3 <<: ZAdd(1, ModeA(12, 23))
-      qpath / 3 <<: a1
-      qpath / 3 <<: a2
+      qpath / 1 <<: a1
+      qpath / 2 <<: a2
+
+      qpath / 1 <<: Get() should be(Some(ModeA(12, 23)))
+      qpath / 2 <<: Get() should be(Some(ModeB(12, "ab")))
 
     }
   }
@@ -40,7 +40,7 @@ case class ModeA(a: Int, b: Int) extends BaseC
 case class ModeB(a: Int, b: String) extends BaseC
 
 class BaseCType extends ValueType[BaseC] {
-  val modeDecoder = """"(a|b)|([-]*\d+)|(.+)"""".r
+  val modeDecoder = """(a|b)@(\d+)@(.+)""".r
 
   override def decode(coded: Array[Byte]): BaseC = new String(coded) match {
     case modeDecoder("a", aa, bb) if Try(bb.toInt).isSuccess =>
@@ -51,9 +51,9 @@ class BaseCType extends ValueType[BaseC] {
 
   override def encode(raw: BaseC): Array[Byte] = raw match {
     case ModeA(aa, bb) =>
-      s"a|$aa|$bb".getBytes()
+      s"a@$aa@$bb".getBytes()
     case ModeB(aa, bb) =>
-      s"a|$aa|$bb".getBytes()
+      s"b@$aa@$bb".getBytes()
   }
 }
 object BaseCType extends BaseCType
